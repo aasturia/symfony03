@@ -7,10 +7,12 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
-
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Notifier\ChatterInterface;
-use Psr\Log\LoggerInterface;
+
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+
 
 /**
  * @Route("/notification", name="notification")
@@ -20,16 +22,18 @@ class NotificationController extends AbstractController
     /**
      * @Route("/send", name="send", methods={"POST"})
      */
-    public function create(Request $request, MailerInterface $mailer, ChatterInterface $chatter, LoggerInterface $logger)
+    public function create(Request $request, MailerInterface $mailer, ChatterInterface $chatter)
     {
-        //
-//        $logger->info('I just got the logger');
-//        $logger->error('An error occurred');
-//
-//        $logger->critical('I left the oven on!', [
-//            // include extra "context" info in your logs
-//            'cause' => 'in_hurry',
-//        ]);
+
+        // create a log channel
+        $logger = new Logger('notification-service');
+        $logger->pushHandler(new StreamHandler('../var/log/notifications.log', Logger::DEBUG));
+
+        // add records to the log
+//        $logger->warning('Foo1');
+//        $logger->error('Bar2');
+//        $logger->notice('Adding a new user3');
+        $logger->info('request received from IP: '.json_encode($request->getClientIp()));
 
         //decode request data:
         $data = json_decode($request->getContent(), false);
@@ -54,7 +58,7 @@ class NotificationController extends AbstractController
 
 //        ob_start();
 //        var_dump($rules);
-//        $rulesString = ob_get_clean();
+//        $rulesData = ob_get_clean();
 
         //return response to client
         return new Response(json_encode($projectsNames));

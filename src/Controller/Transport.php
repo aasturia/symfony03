@@ -3,10 +3,11 @@
 
 namespace App\Controller;
 
-use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface as MailerTransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Notifier\ChatterInterface;
+use Symfony\Component\Notifier\Exception\TransportExceptionInterface;
 use Symfony\Component\Notifier\Message\ChatMessage;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Notifier\Bridge\Telegram\TelegramOptions;
@@ -36,7 +37,7 @@ class Transport
         }
     }
 
-    public function sendThroughSmtp($data, $effect)
+    public function sendThroughSmtp($data, $effect, $logger)
     {
         $email = (new TemplatedEmail())
             ->from('alex.canzona@gmail.com')
@@ -48,36 +49,35 @@ class Transport
                 'username' => 'Asturia',
             ]);
 
-        $this->mailer->send($email);
+        try {
+            $this->mailer->send($email);
+            $logger->info('The email was sent successfully  through smtp to recipient '.$effect->recipient.' with template'.$effect->template_id);
+        } catch (MailerTransportExceptionInterface $e) {
+            $logger->error('some trouble with sending email: '.$e);
+        }
+
     }
 
     private function sendThroughTelegram($projects, $effect, $logger)
     {
-//        $data = getPlacefolders($projects, $effect);
-
-        $result = [];
-
-        foreach ($projects as $project) {
-            $logger->info(json_encode($project));
-            foreach ($effect->placeholders as $key => $value) {
-                array_push($result, ['placeholderName'=>$key, 'placeholderField'=> $value, 'projectField' => $project->$key ]);
-            }
-        }
-
-        $logger->info('привет'. json_encode( $result));
-
         $loader = new FilesystemLoader('../templates/telegram/');
         $twig = new \Twig\Environment($loader);
         $template = $twig->load('telegram' . ($effect->template_id) . '.html.twig');
-        $message = $template->render(['projects' => $result]);
+        $message = $template->render(['projects' => $projects]);
 
         $chatMessage = new ChatMessage($message);
         $telegramOptions = (new TelegramOptions())
             ->chatId($effect->recipient)
             ->parseMode('html');
         $chatMessage->options($telegramOptions);
+        
+        try {
+            $this->chatter->send($chatMessage);
+            $logger->info('The notification was sent successfully through telegram to recipient '.$effect->recipient.' with template'.$effect->template_id);
+        } catch (TransportExceptionInterface $e) {
+            $logger->error('some error with sending to Telegram: '.$e);
+        }
 
-        $this->chatter->send($chatMessage);
     }
 
 }
