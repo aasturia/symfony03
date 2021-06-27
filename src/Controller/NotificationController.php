@@ -40,7 +40,7 @@ class NotificationController extends AbstractController
         $projects = $data->projects;
 
 
-        //find filtered projects
+        //find filtered projects array
         $rules = new Rules;
         $filteredProjects = array_filter($projects, function ($project) use ($rules) {
             return $rules->isConditionsTrue($project);
