@@ -7,18 +7,18 @@ use Exception;
 
 class Rules
 {
-    public string $operator;
+    private string $operator;
 
-    public $conditions;
+    private $conditions;
 
-    public $effects;
+    private $effects;
 
-    function __construct()
+    public function __construct()
     {
         if (is_file('../config/rules.json')) {
             $rules = file_get_contents('../config/rules.json');
         } else {
-            throw new Exception('Не открывается файл rules.json');
+            throw new Exception('There is problem with file rules.json');
         }
 
         $rules = json_decode($rules, false);
@@ -27,7 +27,11 @@ class Rules
         $this->effects = $rules->rules[0]->effects;
     }
 
-    public function compareWithCondition($first, $second, $condition)
+    public function getEffects() {
+        return $this->effects;
+    }
+
+    private function compareWithCondition($first, $second, $condition)
     {
         switch ($condition) {
             case 'equal':
@@ -43,7 +47,7 @@ class Rules
         }
     }
 
-    public function operatorResult($first, $second)
+    private function operatorResult($first, $second)
     {
         if ($this->operator === 'and') {
             return $first and $second;
@@ -54,7 +58,7 @@ class Rules
         }
     }
 
-    public function operatorInitial()
+    private function operatorInitial()
     {
         if ($this->operator === 'and') {
             return true;
@@ -77,16 +81,5 @@ class Rules
 
         }, $this->operatorInitial());
     }
-
-//    public function getPlacefolders($projects, $effect) {
-//        $result = [];
-//        foreach ($projects as $project) {
-//            foreach ($effect as $key => $value) {
-//                array_push($result, [$key, $project=>$value]);
-//            }
-//        }
-//        return $result;
-//    }
-
 
 }
